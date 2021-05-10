@@ -113,18 +113,45 @@ best_params = gridcv.best_params_
 print('最適パラメータ ' + str(best_params))
 # 最適モデルの保持
 best_estimator = gridcv.best_estimator_
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（グリッドサーチをスクラッチ実装）
-# パラメータを走査
+# %% 3 & 4) パラメータ選択＆クロスバリデーション（グリッドサーチでスクラッチ実装）
 import numpy as np
-cv_params = {'gamma': [1, 2, 3],
-             'C': [10, 20, 30],
-             'theta': [100, 200, 300]}
+from sklearn.metrics import check_scoring
 # パラメータ総当たり配列（グリッド）を作成
 param_tuple = tuple(cv_params.values())
 param_meshgrid = np.meshgrid(*param_tuple)
-param_grid = np.vstack([param_array.ravel() for param_array in param_meshgrid])
+param_grid = np.vstack([param_array.ravel() for param_array in param_meshgrid]).T
 print(param_grid)
-# グリッドを走査
-for params in tuple(param_grid):
-    print(params)
+# パラメータと評価指標格納用list
+param_score_list = []
+# グリッドを走査（スクラッチ実装）
+for param_values in param_grid:
+    # パラメータをdict型にしてモデルに格納
+    params = {k: v for k, v in zip(cv_params.keys(), param_values)}
+    model.set_params(**params)
+
+    # クロスバリデーション（スクラッチ実装）
+    scores = []  # 指標格納用リスト
+    for train, test in cv.split(X, y):
+        # 学習データとテストデータ分割
+        X_train = X[train]  # 学習データ目的変数
+        y_train = y[train]  # 学習データ説明変数
+        X_test = X[test]  # テストデータ目的変数
+        y_test = y[test]  # テストデータ説明変数
+        # モデルの学習
+        model.fit(X_train, y_train)
+        # 指標算出
+        scorer = check_scoring(model, scoring)
+        score = scorer(model, X_test, y_test)
+        scores.append(score)
+    # 指標の平均値を算出
+    mean_score = np.mean(scores)
+    # パラメータと指標をlistに格納
+    param_score_list.append({'score': mean_score,
+                             'params': params
+                             })
+                             
+# 評価指標が最高のパラメータを抽出
+max_index = np.argmax([a['score'] for a in param_score_list])
+best_params = [a['params'] for a in param_score_list][max_index]
+print(best_params)
 # %%
