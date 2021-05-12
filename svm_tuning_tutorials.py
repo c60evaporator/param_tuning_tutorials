@@ -11,7 +11,7 @@ seed = 42  # 乱数シード
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
 classplot.class_separator_plot(model, ['petal_width', 'petal_length'], 'species', iris,
                                cv=cv, display_cv_indices=[0, 1, 2])
-# %% 1) チューニング前の評価指標算出
+# %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
 import numpy as np
 X = iris[['petal_width', 'petal_length']].values  # 説明変数をndarray化
@@ -23,7 +23,7 @@ scores = cross_val_score(model, X, y, cv=cv,
                          scoring=scoring, n_jobs=-1)
 print(f'scores={scores}')
 print(f'average_score={np.mean(scores)}')
-# %% 2) パラメータ種類と範囲の選択
+# %% 手順2) パラメータ種類と範囲の選択
 from sklearn.model_selection import validation_curve
 import matplotlib.pyplot as plt
 cv_params = {'gamma': [0.01, 0.03, 0.1, 0.3, 1, 3, 10],
@@ -62,7 +62,7 @@ for i, (k, v) in enumerate(cv_params.items()):
     plt.legend(loc='lower right')  # 凡例
     # グラフを描画
     plt.show()
-# %% 2) パラメータ種類と範囲の選択（範囲を広げる）
+# %% 手順2) パラメータ種類と範囲の選択（範囲を広げる）
 from sklearn.model_selection import validation_curve
 import matplotlib.pyplot as plt
 cv_params = {'gamma': [0.0001, 0.001, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 100, 1000],
@@ -102,7 +102,7 @@ for i, (k, v) in enumerate(cv_params.items()):
     # グラフを描画
     plt.show()
 
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（グリッドサーチ）
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（グリッドサーチ）
 from sklearn.model_selection import GridSearchCV
 # 最終的なパラメータ範囲
 cv_params = {'gamma': [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100],
@@ -119,18 +119,21 @@ print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% グリッド内の評価指標を可視化（ヒートマップ）
 import pandas as pd
-param1_array = gridcv.cv_results_['param_gamma'].data.astype(np.float64)
-param2_array = gridcv.cv_results_['param_C'].data.astype(np.float64)
-mean_scores = gridcv.cv_results_['mean_test_score']
+# パラメータと評価指標をデータフレームに格納
+param1_array = gridcv.cv_results_['param_gamma'].data.astype(np.float64)  # パラメータgamma
+param2_array = gridcv.cv_results_['param_C'].data.astype(np.float64)  # パラメータC
+mean_scores = gridcv.cv_results_['mean_test_score']  # 評価指標
 df_heat = pd.DataFrame(np.vstack([param1_array, param2_array, mean_scores]).T,
                        columns=['gamma', 'C', 'test_score'])
 # グリッドデータをピボット化
 df_pivot = pd.pivot_table(data=df_heat, values='test_score', 
                           columns='gamma', index='C', aggfunc=np.mean)
+# 上下軸を反転（元々は上方向が小となっているため）
+df_pivot = df_pivot.iloc[::-1]
 # ヒートマップをプロット
 sns.heatmap(df_pivot, cmap='YlGn')
 
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（グリッドサーチをスクラッチ実装）
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（グリッドサーチをスクラッチ実装）
 import numpy as np
 from sklearn.metrics import check_scoring
 # パラメータ総当たり配列（グリッド）を作成
@@ -163,8 +166,7 @@ for param_values in param_grid:
     mean_score = np.mean(scores)
     # パラメータと指標をlistに格納
     param_score_list.append({'score': mean_score,
-                             'params': params
-                             })
+                             'params': params})
 
 # 最適パラメータの表示と保持
 max_index = np.argmax([a['score'] for a in param_score_list])
@@ -172,7 +174,7 @@ best_params = [a['params'] for a in param_score_list][max_index]
 best_score = [a['score'] for a in param_score_list][max_index]
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（ランダムサーチ）
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（ランダムサーチ）
 from sklearn.model_selection import RandomizedSearchCV
 # パラメータの密度をグリッドサーチのときより増やす
 cv_params = {'gamma': [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100],
@@ -189,8 +191,16 @@ best_score = randcv.best_score_
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% ランダムサーチの評価指標を可視化（散布図）
-
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（BayesianOptimizationでベイズ最適化）
+# パラメータと評価指標をndarrayに格納
+param1_array = randcv.cv_results_['param_gamma'].data.astype(np.float64)  # パラメータgamma
+param2_array = randcv.cv_results_['param_C'].data.astype(np.float64)  # パラメータC
+mean_scores = randcv.cv_results_['mean_test_score']  # 評価指標
+# 散布図プロット
+plt.scatter(param1_array, param2_array, c=mean_scores,
+            cmap='YlGn', edgecolors='lightgrey')
+plt.xscale('log')  # 第1軸をlogスケールに
+plt.yscale('log')  # 第2軸をlogスケールに
+# %% 手順3＆4 パラメータ選択＆クロスバリデーション（BayesianOptimizationでベイズ最適化）
 from bayes_opt import BayesianOptimization
 # パラメータ範囲（Tupleで範囲選択）
 bayes_params = {'gamma': (0.001, 100),
@@ -199,7 +209,7 @@ bayes_params = {'gamma': (0.001, 100),
 def bayes_evaluate(gamma, C):
     # 最適化対象のパラメータ
     params = {'gamma': gamma,
-                'C': C}        
+              'C': C}
     # モデルにパラメータ適用
     model.set_params(**params)
     # cross_val_scoreでクロスバリデーション
@@ -213,6 +223,53 @@ bo = BayesianOptimization(bayes_evaluate, bayes_params, random_state=seed)
 bo.maximize(init_points=5, n_iter=30, acq='ei')
 # 最適パラメータの表示と保持
 best_params = bo.max['params']
+best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
-# %% 3 & 4) パラメータ選択＆クロスバリデーション（optunaでベイズ最適化）
+# %% BayesianOptimizationの評価指標を可視化（散布図）
+# パラメータと評価指標をndarrayに格納
+param1_array = bo.space.params[:,0]  # パラメータgamma
+param2_array = bo.space.params[:,1]  # パラメータC
+mean_scores = bo.space.target  # 評価指標
+# 散布図プロット
+plt.scatter(param1_array, param2_array, c=mean_scores,
+            cmap='YlGn', edgecolors='lightgrey')
+plt.xscale('log')  # 第1軸をlogスケールに
+plt.yscale('log')  # 第2軸をlogスケールに
+
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（optunaでベイズ最適化）
+import optuna
+# ベイズ最適化時の評価指標算出メソッド
+def bayes_objective(trial):
+    params = {
+        "gamma": trial.suggest_float("gamma", 0.001, 100, log=True),
+        "C": trial.suggest_float("C", 0.001, 100, log=True)
+    }
+    # モデルにパラメータ適用
+    model.set_params(**params)
+    # cross_val_scoreでクロスバリデーション
+    scores = cross_val_score(model, X, y, cv=cv,
+                             scoring=scoring, n_jobs=-1)
+    val = scores.mean()
+    return val
+
+# ベイズ最適化を実行
+study = optuna.create_study(direction="maximize")
+study.optimize(bayes_objective, n_trials=30)
+
+# 最適パラメータの表示と保持
+best_params = study.best_trial.params
+best_score = study.best_trial.value
+print(f'最適パラメータ {best_params}\nスコア {best_score}')
+
+# %% Optunaの評価指標を可視化（散布図）
+# パラメータと評価指標をndarrayに格納
+param1_array = [trial.params['gamma'] for trial in study.trials]  # パラメータgamma
+param2_array = [trial.params['C'] for trial in study.trials]  # パラメータC
+mean_scores = [trial.value for trial in study.trials]  # 評価指標
+# 散布図プロット
+plt.scatter(param1_array, param2_array, c=mean_scores,
+            cmap='YlGn', edgecolors='lightgrey')
+plt.xscale('log')  # 第1軸をlogスケールに
+plt.yscale('log')  # 第2軸をlogスケールに
+# %%
