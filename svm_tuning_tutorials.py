@@ -200,6 +200,9 @@ plt.scatter(param1_array, param2_array, c=mean_scores,
             cmap='YlGn', edgecolors='lightgrey')
 plt.xscale('log')  # 第1軸をlogスケールに
 plt.yscale('log')  # 第2軸をlogスケールに
+plt.xlim(np.amin(cv_params['gamma']), np.amax(cv_params['gamma']))  # X軸表示範囲をデータ最小値～最大値に
+plt.ylim(np.amin(cv_params['C']), np.amax(cv_params['C']))  # Y軸表示範囲をデータ最小値～最大値に
+
 # %% 手順3＆4 パラメータ選択＆クロスバリデーション（BayesianOptimizationでベイズ最適化）
 from bayes_opt import BayesianOptimization
 # パラメータ範囲（Tupleで範囲選択）
@@ -225,17 +228,56 @@ bo.maximize(init_points=5, n_iter=30, acq='ei')
 best_params = bo.max['params']
 best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
-
 # %% BayesianOptimizationの評価指標を可視化（散布図）
 # パラメータと評価指標をndarrayに格納
-param1_array = bo.space.params[:,0]  # パラメータgamma
-param2_array = bo.space.params[:,1]  # パラメータC
+df_history = pd.DataFrame(bo.space.params, columns=bo.space.keys)  # パラメータ
 mean_scores = bo.space.target  # 評価指標
 # 散布図プロット
-plt.scatter(param1_array, param2_array, c=mean_scores,
+plt.scatter(df_history['gamma'].values, df_history['C'].values, c=mean_scores,
             cmap='YlGn', edgecolors='lightgrey')
 plt.xscale('log')  # 第1軸をlogスケールに
 plt.yscale('log')  # 第2軸をlogスケールに
+plt.xlim(bayes_params['gamma'][0], bayes_params['gamma'][1])  # X軸表示範囲をデータ最小値～最大値に
+plt.ylim(bayes_params['C'][0], bayes_params['C'][1])  # Y軸表示範囲をデータ最小値～最大値に
+
+# %% BayesianOptimizationを対数軸でやり直し
+from bayes_opt import BayesianOptimization
+# パラメータ範囲（Tupleで範囲選択）
+bayes_params = {'gamma': (0.001, 100),
+                'C': (0.01, 100)}
+# パラメータ範囲を対数化
+bayes_params_log = {k: (np.log10(v[0]), np.log10(v[1])) for k, v in bayes_params.items()}
+# ベイズ最適化時の評価指標算出メソッド
+def bayes_evaluate(gamma, C):
+    # 最適化対象のパラメータ
+    params = {'gamma': np.power(10 ,gamma),
+              'C': np.power(10, C)}
+    # モデルにパラメータ適用
+    model.set_params(**params)
+    # cross_val_scoreでクロスバリデーション
+    scores = cross_val_score(model, X, y, cv=cv,
+                             scoring=scoring, n_jobs=-1)
+    val = scores.mean()
+    return val
+
+# ベイズ最適化を実行
+bo = BayesianOptimization(bayes_evaluate, bayes_params_log, random_state=seed)
+bo.maximize(init_points=5, n_iter=30, acq='ei')
+# 最適パラメータの表示と保持
+best_params = bo.max['params']
+best_score = bo.max['target']
+print(f'最適パラメータ {best_params}\nスコア {best_score}')
+# %% BayesianOptimization対数軸の評価指標を可視化（散布図）
+# パラメータと評価指標をndarrayに格納
+df_history = pd.DataFrame(np.power(10 ,bo.space.params), columns=bo.space.keys)  # パラメータ
+mean_scores = bo.space.target  # 評価指標
+# 散布図プロット
+plt.scatter(df_history['gamma'].values, df_history['C'].values, c=mean_scores,
+            cmap='YlGn', edgecolors='lightgrey')
+plt.xscale('log')  # 第1軸をlogスケールに
+plt.yscale('log')  # 第2軸をlogスケールに
+plt.xlim(bayes_params['gamma'][0], bayes_params['gamma'][1])  # X軸表示範囲をデータ最小値～最大値に
+plt.ylim(bayes_params['C'][0], bayes_params['C'][1])  # Y軸表示範囲をデータ最小値～最大値に
 
 # %% 手順3＆4) パラメータ選択＆クロスバリデーション（optunaでベイズ最適化）
 import optuna
@@ -254,14 +296,14 @@ def bayes_objective(trial):
     return val
 
 # ベイズ最適化を実行
-study = optuna.create_study(direction="maximize")
+study = optuna.create_study(direction="maximize",
+                            sampler=optuna.samplers.RandomSampler(seed=seed))
 study.optimize(bayes_objective, n_trials=30)
 
 # 最適パラメータの表示と保持
 best_params = study.best_trial.params
 best_score = study.best_trial.value
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
-
 # %% Optunaの評価指標を可視化（散布図）
 # パラメータと評価指標をndarrayに格納
 param1_array = [trial.params['gamma'] for trial in study.trials]  # パラメータgamma
@@ -272,4 +314,86 @@ plt.scatter(param1_array, param2_array, c=mean_scores,
             cmap='YlGn', edgecolors='lightgrey')
 plt.xscale('log')  # 第1軸をlogスケールに
 plt.yscale('log')  # 第2軸をlogスケールに
+plt.xlim(0.001, 100)  # X軸表示範囲をデータ最小値～最大値に
+plt.ylim(0.001, 100)  # Y軸表示範囲をデータ最小値～最大値に
+
+# %% 学習曲線のプロット
+from sklearn.model_selection import learning_curve
+# 最適パラメータを学習器にセット
+model.set_params(**best_params)
+
+# 学習曲線の取得
+train_sizes, train_scores, valid_scores = learning_curve(estimator=model,
+                                                         X=X, y=y,
+                                                         train_sizes=np.linspace(0.1, 1.0, 10),
+                                                         cv=cv, scoring=scoring, n_jobs=-1)
+# 学習データ指標の平均±標準偏差を計算
+train_mean = np.mean(train_scores, axis=1)
+train_std  = np.std(train_scores, axis=1)
+train_center = train_mean
+train_high = train_mean + train_std
+train_low = train_mean - train_std
+# 検証データ指標の平均±標準偏差を計算
+valid_mean = np.mean(valid_scores, axis=1)
+valid_std  = np.std(valid_scores, axis=1)
+valid_center = valid_mean
+valid_high = valid_mean + valid_std
+valid_low = valid_mean - valid_std
+# training_scoresをプロット
+plt.plot(train_sizes, train_center, color='blue', marker='o', markersize=5, label='training score')
+plt.fill_between(train_sizes, train_high, train_low, alpha=0.15, color='blue')
+# validation_scoresをプロット
+plt.plot(train_sizes, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
+plt.fill_between(train_sizes, valid_high, valid_low, alpha=0.15, color='green')
+# 最高スコアの表示
+best_score = valid_center[len(valid_center) - 1]
+plt.text(np.amax(train_sizes), valid_low[len(valid_low) - 1], f'best_score={best_score}',
+                color='black', verticalalignment='top', horizontalalignment='right')
+# %% 検証曲線のプロット（横軸パラメータ以外は最適値に固定）
+# 検証曲線描画対象パラメータ
+valid_curve_params = {'gamma': [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100],
+                      'C': [0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100]}
+# 最適パラメータを上記描画対象に追加
+for k, v in valid_curve_params.items():
+    if best_params[k] not in v:
+        v.append(best_params[k])
+        v.sort()
+for i, (k, v) in enumerate(valid_curve_params.items()):
+    # モデルに最適パラメータを適用
+    model.set_params(**best_params)
+    # 検証曲線を描画
+    train_scores, valid_scores = validation_curve(estimator=model,
+                                                  X=X, y=y,
+                                                  param_name=k,
+                                                  param_range=v,
+                                                  cv=cv, scoring=scoring,
+                                                  n_jobs=-1)
+    # 学習データに対するスコアの平均±標準偏差を算出
+    train_mean = np.mean(train_scores, axis=1)
+    train_std  = np.std(train_scores, axis=1)
+    train_center = train_mean
+    train_high = train_mean + train_std
+    train_low = train_mean - train_std
+    # テストデータに対するスコアの平均±標準偏差を算出
+    valid_mean = np.mean(valid_scores, axis=1)
+    valid_std  = np.std(valid_scores, axis=1)
+    valid_center = valid_mean
+    valid_high = valid_mean + valid_std
+    valid_low = valid_mean - valid_std
+    # training_scoresをプロット
+    plt.plot(v, train_center, color='blue', marker='o', markersize=5, label='training score')
+    plt.fill_between(v, train_high, train_low, alpha=0.15, color='blue')
+    # validation_scoresをプロット
+    plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
+    plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
+    # 最適パラメータを縦線表示
+    plt.axvline(x=best_params[k], color='gray')
+    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
+    plt.xscale('log')
+    # 軸ラベルおよび凡例の指定
+    plt.xlabel(k)  # パラメータ名を横軸ラベルに
+    plt.ylabel(scoring)  # スコア名を縦軸ラベルに
+    plt.legend(loc='lower right')  # 凡例
+    # グラフを描画
+    plt.show()
 # %%
