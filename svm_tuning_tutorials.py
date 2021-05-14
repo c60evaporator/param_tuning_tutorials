@@ -6,7 +6,9 @@ sns.scatterplot(x='petal_width', y='petal_length', data=iris, hue='species')  # 
 from custom_scatter_plot import classplot
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
+# モデル作成
 model = SVC()  # チューニング前のモデル(パラメータ指定しない)
+# クロスバリデーションして決定境界を可視化
 seed = 42  # 乱数シード
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
 classplot.class_separator_plot(model, ['petal_width', 'petal_length'], 'species', iris,
@@ -396,4 +398,8 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
     plt.legend(loc='lower right')  # 凡例
     # グラフを描画
     plt.show()
+# %% チューニング後のモデル可視化
+classplot.class_separator_plot(model, ['petal_width', 'petal_length'], 'species', iris,
+                               cv=cv, display_cv_indices=[0, 1, 2],
+                               model_params=best_params)
 # %%
