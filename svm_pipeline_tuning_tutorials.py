@@ -182,7 +182,7 @@ import optuna
 def bayes_objective(trial):
     params = {
         "svm__gamma": trial.suggest_float("svm__gamma", 0.01, 100, log=True),
-        "svm__C": trial.suggest_float("svm__C", 0.01, 1000, log=True)
+        "svm__C": trial.suggest_float("svm__C", 0.1, 1000, log=True)
     }
     # モデルにパラメータ適用
     model.set_params(**params)
@@ -214,7 +214,7 @@ cbar.set_label('score')  # カラーバーのタイトル
 plt.xscale('log')  # 第1軸をlogスケールに
 plt.yscale('log')  # 第2軸をlogスケールに
 plt.xlim(0.01, 100)  # X軸表示範囲をデータ最小値～最大値に
-plt.ylim(0.01, 1000)  # Y軸表示範囲をデータ最小値～最大値に
+plt.ylim(0.1, 1000)  # Y軸表示範囲をデータ最小値～最大値に
 plt.xlabel('svm__gamma')  # X軸ラベル
 plt.ylabel('svm__C')  # Y軸ラベル
 
