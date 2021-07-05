@@ -58,7 +58,7 @@ for i, (k, v) in enumerate(cv_params.items()):
     # validation_scoresをプロット
     plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
     plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
-    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
+    # スケールを'log'に（線形なパラメータは'linear'にするので注;:意）
     plt.xscale('log')
     # 軸ラベルおよび凡例の指定
     plt.xlabel(k)  # パラメータ名を横軸ラベルに

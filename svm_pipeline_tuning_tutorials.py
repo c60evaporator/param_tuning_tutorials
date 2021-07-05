@@ -1,7 +1,7 @@
 # %% データの読込
 import pandas as pd
 import seaborn as sns
-df_athelete = pd.read_csv(f'./nba_nfl_2.csv')
+df_athelete = pd.read_csv(f'./sample_data/nba_nfl_2.csv')
 sns.scatterplot(x='height', y='weight', data=df_athelete, hue='league')  # 説明変数と目的変数のデータ点の散布図をプロット
 # %% チューニング前のモデル
 from custom_scatter_plot import classplot

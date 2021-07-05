@@ -5,7 +5,7 @@ from sklearn.metrics import r2_score
 import pandas as pd
 import numpy as np
 
-df_temp = pd.read_csv(f'./temp_pressure.csv')
+df_temp = pd.read_csv(f'./sample_data/temp_pressure.csv')
 lr = LinearRegression()  # 線形回帰用クラス
 X = df_temp[['altitude']].values  # 説明変数(標高)
 y = df_temp[['pressure']].values  # 目的変数(気圧)
@@ -62,7 +62,7 @@ plt.ylabel('true_value [°C]')
 plt.text(0, -10, f'r2={r2_score(y, lr.predict(X))}')  # R2乗値を表示
 
 # %% 1-2-B) 動物の身長と体重
-df_animal = pd.read_csv(f'./animal_size.csv')
+df_animal = pd.read_csv(f'./sample_data/animal_size.csv')
 X = df_animal[['body_length']].values  # 説明変数(体長)
 y = df_animal[['weight']].values  # 目的変数(体重)
 plt.scatter(X, y, color = 'blue')  # 説明変数と目的変数のデータ点の散布図をプロット
@@ -100,7 +100,7 @@ plt.text(400, 1000, f'r2={r2_score(y, pred_y)}')  # R2乗値を表示
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from mlxtend.plotting import plot_decision_regions
-df_athelete = pd.read_csv(f'./nba_nfl_2.csv')  # データ読込
+df_athelete = pd.read_csv(f'./sample_data/nba_nfl_2.csv')  # データ読込
 sns.scatterplot(x='height', y='weight', data=df_athelete, hue='league')  # 説明変数と目的変数のデータ点の散布図をプロット
 plt.xlabel('height [cm]')
 plt.ylabel('weight [kg]')
