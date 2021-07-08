@@ -1,5 +1,6 @@
 # %% データの読込
 import pandas as pd
+import time
 df_osaka = pd.read_csv(f'./sample_data/osaka_metropolis_english.csv')
 OBJECTIVE_VARIALBLE = 'approval_rate'  # 目的変数
 USE_EXPLANATORY = ['2_between_30to60', '3_male_ratio', '5_household_member', 'latitude']  # 説明変数
@@ -43,12 +44,12 @@ from sklearn.model_selection import validation_curve
 import matplotlib.pyplot as plt
 cv_params = {'subsample': [0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0],
              'colsample_bytree': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-             'reg_alpha': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
-             'reg_lambda': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
-             'learning_rate': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
+             'reg_alpha': [0, 0.0001, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
+             'reg_lambda': [0, 0.0001, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
+             'learning_rate': [0, 0.0001, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
              'min_child_weight': [1, 3, 5, 7, 9, 11, 13, 15],
              'max_depth': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-             'gamma': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0]
+             'gamma': [0, 0.0001, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0]
              }
 param_scales = {'subsample': 'linear',
                 'colsample_bytree': 'linear',
@@ -93,4 +94,103 @@ for i, (k, v) in enumerate(cv_params.items()):
     plt.legend(loc='lower right')  # 凡例
     # グラフを描画
     plt.show()
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（グリッドサーチ）
+from sklearn.model_selection import GridSearchCV
+start = time.time()
+# 最終的なパラメータ範囲
+cv_params = {'learning_rate': [0.01, 0.03, 0.1, 0.3],
+             'min_child_weight': [2, 4, 6, 8],
+             'max_depth': [1, 2, 3, 4],
+             'colsample_bytree': [0.2, 0.5, 0.8, 1.0],
+             'subsample': [0.2, 0.5, 0.8, 1.0]
+             }
+# グリッドサーチのインスタンス作成
+gridcv = GridSearchCV(model, cv_params, cv=cv,
+                      scoring=scoring, n_jobs=-1)
+# グリッドサーチ実行（学習実行）
+gridcv.fit(X, y)
+# 最適パラメータの表示と保持
+best_params = gridcv.best_params_
+best_score = gridcv.best_score_
+print(f'最適パラメータ {best_params}\nスコア {best_score}')
+print(time.time() - start)
+# %% 手順3＆4) パラメータ選択＆クロスバリデーション（ランダムサーチ）
+from sklearn.model_selection import RandomizedSearchCV
+start = time.time()
+# パラメータの種類と密度をグリッドサーチのときより増やす
+cv_params = {'learning_rate': [0.01, 0.02, 0.05, 0.1, 0.2, 0.3],
+             'min_child_weight': [2, 3, 4, 5, 6, 7, 8],
+             'max_depth': [1, 2, 3, 4],
+             'colsample_bytree': [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+             'subsample': [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+             'reg_alpha': [0.001, 0.003, 0.01, 0.03, 0.1],
+             'reg_lambda': [0.001, 0.003, 0.01, 0.03, 0.1],
+             'gamma': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
+             }
+# ランダムサーチのインスタンス作成
+randcv = RandomizedSearchCV(model, cv_params, cv=cv,
+                            scoring=scoring, random_state=seed,
+                            n_iter=1000, n_jobs=-1)
+# ランダムサーチ実行（学習実行）
+randcv.fit(X, y)
+# 最適パラメータの表示と保持
+best_params = randcv.best_params_
+best_score = randcv.best_score_
+print(f'最適パラメータ {best_params}\nスコア {best_score}')
+print(time.time() - start)
+# %% 手順3＆4 パラメータ選択＆クロスバリデーション（BayesianOptimization対数軸でベイズ最適化）
+from bayes_opt import BayesianOptimization
+start = time.time()
+# パラメータ範囲（Tupleで範囲選択）
+bayes_params = {'learning_rate': (0.01, 0.3),
+                'min_child_weight': (2, 8),
+                'max_depth': (1, 4),
+                'colsample_bytree': (0.2, 1.0),
+                'subsample': (0.2, 1.0),
+                'reg_alpha': (0.001, 0.1),
+                'reg_lambda': (0.001, 0.1),
+                'gamma': (0.0001, 0.1)
+                }
+# 対数スケールパラメータを対数化
+param_scales = {'subsample': 'linear',
+                'colsample_bytree': 'linear',
+                'reg_alpha': 'log',
+                'reg_lambda': 'log',
+                'learning_rate': 'log',
+                'min_child_weight': 'linear',
+                'max_depth': 'linear',
+                'gamma': 'log'
+                }
+bayes_params_log = {k: (np.log10(v[0]), np.log10(v[1])) if param_scales[k] == 'log' else v for k, v in bayes_params.items()}
+# 整数型パラメータを指定
+int_params = ['min_child_weight', 'max_depth']
+
+# ベイズ最適化時の評価指標算出メソッド(引数が多いので**kwargsで一括読込)
+def bayes_evaluate(**kwargs):
+    params = kwargs
+    # 対数スケールパラメータは10のべき乗をとる
+    params = {k: np.power(10, v) if param_scales[k] == 'log' else v for k, v in params.items()}
+    # 整数型パラメータを整数化
+    params = {k: round(v) if k in int_params else v for k, v in params.items()}
+    # モデルにパラメータ適用
+    model.set_params(**params)
+    # cross_val_scoreでクロスバリデーション
+    scores = cross_val_score(model, X, y, cv=cv,
+                             scoring=scoring, n_jobs=-1)
+    val = scores.mean()
+    return val
+
+# ベイズ最適化を実行
+bo = BayesianOptimization(bayes_evaluate, bayes_params_log, random_state=seed)
+bo.maximize(init_points=20, n_iter=350, acq='ei')
+# 最適パラメータとスコアを取得
+best_params = bo.max['params']
+best_score = bo.max['target']
+# 対数スケールパラメータは10のべき乗をとる
+best_params = {k: np.power(10, v) if param_scales[k] == 'log' else v for k, v in best_params.items()}
+# 整数型パラメータを整数化
+best_params = {k: round(v) if k in int_params else v for k, v in best_params.items()}
+# 最適パラメータを表示
+print(f'最適パラメータ {best_params}\nスコア {best_score}')
+print(time.time() - start)
 # %%
