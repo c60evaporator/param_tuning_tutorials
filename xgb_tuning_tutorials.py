@@ -13,7 +13,7 @@ from custom_scatter_plot import regplot
 from xgboost import XGBRegressor
 from sklearn.model_selection import KFold
 # モデル作成
-model = XGBRegressor(booster='gbtree', learning_rate=0.3)  # チューニング前のモデル(booster以外のパラメータ指定しない)
+model = XGBRegressor(booster='gbtree')  # チューニング前のモデル(booster以外のパラメータ指定しない)
 # 学習時fitパラメータ指定
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'early_stopping_rounds': 20,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
@@ -41,15 +41,24 @@ print(f'average_score={np.mean(scores)}')
 # %% 手順2) パラメータ種類と範囲の選択
 from sklearn.model_selection import validation_curve
 import matplotlib.pyplot as plt
-cv_params = {'subsample': [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-             'colsample_bytree': [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-             'reg_alpha': [],
-             'reg_lambda': [],
-             'learning_rate': [0.1, 0.2, 0.3, 0.4, 0.5],
+cv_params = {'subsample': [0, 0.1, 0.2, 0.3, 0.4, 0.6, 0.7, 0.8, 0.9, 1.0],
+             'colsample_bytree': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+             'reg_alpha': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
+             'reg_lambda': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
+             'learning_rate': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0],
              'min_child_weight': [1, 3, 5, 7, 9, 11, 13, 15],
-             'max_depth': [3, 4, 5, 6, 7],
-             'gamma': []
+             'max_depth': [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+             'gamma': [0, 0.001, 0.01, 0.03, 0.1, 0.3, 1.0]
              }
+param_scales = {'subsample': 'linear',
+                'colsample_bytree': 'linear',
+                'reg_alpha': 'log',
+                'reg_lambda': 'log',
+                'learning_rate': 'log',
+                'min_child_weight': 'linear',
+                'max_depth': 'linear',
+                'gamma': 'log'
+                }
 # 検証曲線のプロット（パラメータ毎にプロット）
 for i, (k, v) in enumerate(cv_params.items()):
     train_scores, valid_scores = validation_curve(estimator=model,
@@ -76,11 +85,12 @@ for i, (k, v) in enumerate(cv_params.items()):
     # validation_scoresをプロット
     plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
     plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
-    # スケールを'log'に（線形なパラメータは'linear'にするので注;:意）
-    plt.xscale('log')
+    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
+    plt.xscale(param_scales[k])
     # 軸ラベルおよび凡例の指定
     plt.xlabel(k)  # パラメータ名を横軸ラベルに
     plt.ylabel(scoring)  # スコア名を縦軸ラベルに
     plt.legend(loc='lower right')  # 凡例
     # グラフを描画
     plt.show()
+# %%
