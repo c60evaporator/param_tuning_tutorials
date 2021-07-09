@@ -1,6 +1,6 @@
 # %% データの読込
 import seaborn as sns
-iris = sns.load_dataset("iris")
+iris = sns.load_dataset('iris')
 sns.scatterplot(x='petal_width', y='petal_length', data=iris, hue='species')  # 説明変数と目的変数のデータ点の散布図をプロット
 # %% チューニング前のモデル
 from custom_scatter_plot import classplot
@@ -235,6 +235,7 @@ bo.maximize(init_points=5, n_iter=30, acq='ei')
 best_params = bo.max['params']
 best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
+
 # %% BayesianOptimizationの評価指標を可視化（散布図）
 # パラメータと評価指標をndarrayに格納
 df_history = pd.DataFrame(bo.space.params, columns=bo.space.keys)  # パラメータ
@@ -300,8 +301,8 @@ import optuna
 # ベイズ最適化時の評価指標算出メソッド
 def bayes_objective(trial):
     params = {
-        "gamma": trial.suggest_float("gamma", 0.001, 100, log=True),
-        "C": trial.suggest_float("C", 0.01, 100, log=True)
+        'gamma': trial.suggest_float('gamma', 0.001, 100, log=True),
+        'C': trial.suggest_float('C', 0.01, 100, log=True)
     }
     # モデルにパラメータ適用
     model.set_params(**params)
@@ -312,7 +313,7 @@ def bayes_objective(trial):
     return val
 
 # ベイズ最適化を実行
-study = optuna.create_study(direction="maximize",
+study = optuna.create_study(direction='maximize',
                             sampler=optuna.samplers.TPESampler(seed=seed))
 study.optimize(bayes_objective, n_trials=40)
 
@@ -320,6 +321,7 @@ study.optimize(bayes_objective, n_trials=40)
 best_params = study.best_trial.params
 best_score = study.best_trial.value
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
+
 # %% Optunaの評価指標を可視化（散布図）
 # パラメータと評価指標をndarrayに格納
 param1_array = [trial.params['gamma'] for trial in study.trials]  # パラメータgamma
@@ -373,6 +375,7 @@ plt.text(np.amax(train_sizes), valid_low[len(valid_low) - 1], f'best_score={best
 plt.xlabel('training examples')  # 学習サンプル数を横軸ラベルに
 plt.ylabel(scoring)  # スコア名を縦軸ラベルに
 plt.legend(loc='lower right')  # 凡例
+
 # %% 検証曲線のプロット（横軸パラメータ以外は最適値に固定）
 # 検証曲線描画対象パラメータ
 valid_curve_params = {'gamma': [0.001, 0.003, 0.01, 0.03, 0.1, 0.3, 1, 3, 10, 30, 100],
@@ -420,6 +423,7 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
     plt.legend(loc='lower right')  # 凡例
     # グラフを描画
     plt.show()
+    
 # %% チューニング後のモデル可視化
 classplot.class_separator_plot(model, ['petal_width', 'petal_length'], 'species', iris,
                                cv=cv, display_cv_indices=[0, 1, 2],
