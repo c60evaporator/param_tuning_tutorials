@@ -24,10 +24,10 @@ fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               }
 # クロスバリデーションして決定境界を可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
-# regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
-#                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
-#                              cv=cv, display_cv_indices=0,
-#                              fit_params=fit_params)
+regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+                             pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
+                             cv=cv, display_cv_indices=0,
+                             fit_params=fit_params)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
@@ -118,7 +118,6 @@ best_params = gridcv.best_params_
 best_score = gridcv.best_score_
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 print(f'所要時間{time.time() - start}秒')
-
 
 # %% 手順3＆4) パラメータ選択＆クロスバリデーション（ランダムサーチ）
 from sklearn.model_selection import RandomizedSearchCV
