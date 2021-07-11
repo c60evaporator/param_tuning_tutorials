@@ -13,20 +13,21 @@ df_osaka[USE_EXPLANATORY + [OBJECTIVE_VARIALBLE]]
 from custom_scatter_plot import regplot
 from xgboost import XGBRegressor
 from sklearn.model_selection import KFold
+# 乱数シード
+seed = 42
 # モデル作成
-model = XGBRegressor(booster='gbtree')  # チューニング前のモデル(booster以外のパラメータ指定しない)
+model = XGBRegressor(booster='gbtree', random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
 # 学習時fitパラメータ指定
-
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
-              'early_stopping_rounds': 20,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
+              'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
               'eval_set': [(X, y)]  # early_stopping_roundsの評価指標算出用データ
               }
 # クロスバリデーションして決定境界を可視化
-seed = 42  # 乱数シード
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
 # regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
 #                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
-#                              cv=cv, display_cv_indices=0)
+#                              cv=cv, display_cv_indices=0,
+#                              fit_params=fit_params)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
@@ -67,6 +68,7 @@ for i, (k, v) in enumerate(cv_params.items()):
                                                   X=X, y=y,
                                                   param_name=k,
                                                   param_range=v,
+                                                  fit_params=fit_params,
                                                   cv=cv, scoring=scoring,
                                                   n_jobs=-1)
     # 学習データに対するスコアの平均±標準偏差を算出
@@ -110,12 +112,13 @@ cv_params = {'learning_rate': [0.01, 0.03, 0.1, 0.3],
 gridcv = GridSearchCV(model, cv_params, cv=cv,
                       scoring=scoring, n_jobs=-1)
 # グリッドサーチ実行（学習実行）
-gridcv.fit(X, y)
+gridcv.fit(X, y, **fit_params)
 # 最適パラメータの表示と保持
 best_params = gridcv.best_params_
 best_score = gridcv.best_score_
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 print(f'所要時間{time.time() - start}秒')
+
 
 # %% 手順3＆4) パラメータ選択＆クロスバリデーション（ランダムサーチ）
 from sklearn.model_selection import RandomizedSearchCV
@@ -135,7 +138,7 @@ randcv = RandomizedSearchCV(model, cv_params, cv=cv,
                             scoring=scoring, random_state=seed,
                             n_iter=1000, n_jobs=-1)
 # ランダムサーチ実行（学習実行）
-randcv.fit(X, y)
+randcv.fit(X, y, **fit_params)
 # 最適パラメータの表示と保持
 best_params = randcv.best_params_
 best_score = randcv.best_score_
@@ -180,13 +183,13 @@ def bayes_evaluate(**kwargs):
     model.set_params(**params)
     # cross_val_scoreでクロスバリデーション
     scores = cross_val_score(model, X, y, cv=cv,
-                             scoring=scoring, n_jobs=-1)
+                             scoring=scoring, fit_params=fit_params, n_jobs=-1)
     val = scores.mean()
     return val
 
 # ベイズ最適化を実行
 bo = BayesianOptimization(bayes_evaluate, bayes_params_log, random_state=seed)
-bo.maximize(init_points=20, n_iter=350, acq='ei')
+bo.maximize(init_points=20, n_iter=230, acq='ei')
 # 最適パラメータとスコアを取得
 best_params = bo.max['params']
 best_score = bo.max['target']
@@ -217,14 +220,14 @@ def bayes_objective(trial):
     model.set_params(**params)
     # cross_val_scoreでクロスバリデーション
     scores = cross_val_score(model, X, y, cv=cv,
-                             scoring=scoring, n_jobs=-1)
+                             scoring=scoring, fit_params=fit_params, n_jobs=-1)
     val = scores.mean()
     return val
 
 # ベイズ最適化を実行
 study = optuna.create_study(direction='maximize',
                             sampler=optuna.samplers.TPESampler(seed=seed))
-study.optimize(bayes_objective, n_trials=400)
+study.optimize(bayes_objective, n_trials=600)
 
 # 最適パラメータの表示と保持
 best_params = study.best_trial.params
@@ -242,6 +245,7 @@ model.set_params(**best_params)
 train_sizes, train_scores, valid_scores = learning_curve(estimator=model,
                                                          X=X, y=y,
                                                          train_sizes=np.linspace(0.1, 1.0, 10),
+                                                         fit_params=fit_params,
                                                          cv=cv, scoring=scoring, n_jobs=-1)
 # 学習データ指標の平均±標準偏差を計算
 train_mean = np.mean(train_scores, axis=1)
@@ -295,6 +299,7 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
                                                   X=X, y=y,
                                                   param_name=k,
                                                   param_range=v,
+                                                  fit_params=fit_params,
                                                   cv=cv, scoring=scoring,
                                                   n_jobs=-1)
     # 学習データに対するスコアの平均±標準偏差を算出
@@ -330,5 +335,5 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
 regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
                              cv=cv, display_cv_indices=0,
-                             model_params=best_params)
+                             fit_params=fit_params, model_params=best_params)
 # %%
