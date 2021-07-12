@@ -16,7 +16,8 @@ from sklearn.model_selection import KFold
 # 乱数シード
 seed = 42
 # モデル作成
-model = XGBRegressor(booster='gbtree', random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
+model = XGBRegressor(booster='gbtree', eval_metric='rmse', objective='reg:squarederror',
+                     random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
 # 学習時fitパラメータ指定
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
@@ -24,10 +25,10 @@ fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               }
 # クロスバリデーションして決定境界を可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
-regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
-                             pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
-                             cv=cv, display_cv_indices=0,
-                             fit_params=fit_params)
+# regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+#                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
+#                              cv=cv, display_cv_indices=0,
+#                              fit_params=fit_params)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
