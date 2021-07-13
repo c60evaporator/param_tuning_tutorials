@@ -16,11 +16,12 @@ from sklearn.model_selection import KFold
 # 乱数シード
 seed = 42
 # モデル作成
-model = XGBRegressor(booster='gbtree', eval_metric='rmse', objective='reg:squarederror',
+model = XGBRegressor(booster='gbtree', objective='reg:squarederror',
                      random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
 # 学習時fitパラメータ指定
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
+              'eval_metric': 'rmse',  # early_stopping_roundsの評価指標
               'eval_set': [(X, y)]  # early_stopping_roundsの評価指標算出用データ
               }
 # クロスバリデーションして決定境界を可視化
@@ -214,7 +215,7 @@ def bayes_objective(trial):
         'subsample': trial.suggest_float('subsample', 0.2, 1.0),
         'reg_alpha': trial.suggest_float('reg_alpha', 0.001, 0.1, log=True),
         'reg_lambda': trial.suggest_float('reg_lambda', 0.001, 0.1, log=True),
-        'gamma': trial.suggest_float('gamma', 0.0001, 0.1, log=True),
+        'gamma': trial.suggest_float('gamma', 0.0001, 0.1, log=True)
     }
     # モデルにパラメータ適用
     model.set_params(**params)
