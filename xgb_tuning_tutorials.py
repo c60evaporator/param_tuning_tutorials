@@ -17,7 +17,7 @@ from sklearn.model_selection import KFold
 seed = 42
 # モデル作成
 model = XGBRegressor(booster='gbtree', objective='reg:squarederror',
-                     random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
+                     random_state=seed, n_estimators=10000)  # チューニング前のモデル
 # 学習時fitパラメータ指定
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
