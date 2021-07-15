@@ -176,7 +176,7 @@ cv_params = {'reg_alpha': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1],
 # ランダムサーチのインスタンス作成
 randcv = RandomizedSearchCV(model, cv_params, cv=cv,
                             scoring=scoring, random_state=seed,
-                            n_iter=1000, n_jobs=-1)
+                            n_iter=1120, n_jobs=-1)
 # ランダムサーチ実行（学習実行）
 randcv.fit(X, y, **fit_params)
 # 最適パラメータの表示と保持
@@ -227,7 +227,7 @@ def bayes_evaluate(**kwargs):
 
 # ベイズ最適化を実行
 bo = BayesianOptimization(bayes_evaluate, bayes_params_log, random_state=seed)
-bo.maximize(init_points=20, n_iter=230, acq='ei')
+bo.maximize(init_points=20, n_iter=80, acq='ei')
 # 最適パラメータとスコアを取得
 best_params = bo.max['params']
 best_score = bo.max['target']
@@ -264,7 +264,7 @@ def bayes_objective(trial):
 # ベイズ最適化を実行
 study = optuna.create_study(direction='maximize',
                             sampler=optuna.samplers.TPESampler(seed=seed))
-study.optimize(bayes_objective, n_trials=600)
+study.optimize(bayes_objective, n_trials=400)
 
 # 最適パラメータの表示と保持
 best_params = study.best_trial.params
