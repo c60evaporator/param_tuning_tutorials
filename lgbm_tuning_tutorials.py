@@ -17,7 +17,7 @@ from sklearn.model_selection import KFold
 seed = 42
 # モデル作成
 model = LGBMRegressor(boosting_type='gbdt', objective='regression',
-                      random_state=seed, n_estimators=10000)  # チューニング前のモデル(booster以外のパラメータ指定しない)
+                      random_state=seed, n_estimators=10000)  # チューニング前のモデル
 # 学習時fitパラメータ指定
 fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
@@ -26,10 +26,10 @@ fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               }
 # クロスバリデーションして決定境界を可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
-# regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
-#                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
-#                              cv=cv, display_cv_indices=0,
-#                              fit_params=fit_params)
+regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+                             pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
+                             cv=cv, display_cv_indices=0,
+                             fit_params=fit_params)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
@@ -89,7 +89,7 @@ for i, (k, v) in enumerate(cv_params.items()):
     # validation_scoresをプロット
     plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
     plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
-    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
+    # スケールをparam_scalesに合わせて変更
     plt.xscale(param_scales[k])
     # 軸ラベルおよび凡例の指定
     plt.xlabel(k)  # パラメータ名を横軸ラベルに
@@ -271,4 +271,113 @@ best_params = study.best_trial.params
 best_score = study.best_trial.value
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 print(f'所要時間{time.time() - start}秒')
+
+# %% 学習曲線のプロット
+from sklearn.model_selection import learning_curve
+import matplotlib.pyplot as plt
+# 最適パラメータを学習器にセット
+model.set_params(**best_params)
+
+# 学習曲線の取得
+train_sizes, train_scores, valid_scores = learning_curve(estimator=model,
+                                                         X=X, y=y,
+                                                         train_sizes=np.linspace(0.1, 1.0, 10),
+                                                         fit_params=fit_params,
+                                                         cv=cv, scoring=scoring, n_jobs=-1)
+# 学習データ指標の平均±標準偏差を計算
+train_mean = np.mean(train_scores, axis=1)
+train_std  = np.std(train_scores, axis=1)
+train_center = train_mean
+train_high = train_mean + train_std
+train_low = train_mean - train_std
+# 検証データ指標の平均±標準偏差を計算
+valid_mean = np.mean(valid_scores, axis=1)
+valid_std  = np.std(valid_scores, axis=1)
+valid_center = valid_mean
+valid_high = valid_mean + valid_std
+valid_low = valid_mean - valid_std
+# training_scoresをプロット
+plt.plot(train_sizes, train_center, color='blue', marker='o', markersize=5, label='training score')
+plt.fill_between(train_sizes, train_high, train_low, alpha=0.15, color='blue')
+# validation_scoresをプロット
+plt.plot(train_sizes, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
+plt.fill_between(train_sizes, valid_high, valid_low, alpha=0.15, color='green')
+# 最高スコアの表示
+best_score = valid_center[len(valid_center) - 1]
+plt.text(np.amax(train_sizes), valid_low[len(valid_low) - 1], f'best_score={best_score}',
+                color='black', verticalalignment='top', horizontalalignment='right')
+# 軸ラベルおよび凡例の指定
+plt.xlabel('training examples')  # 学習サンプル数を横軸ラベルに
+plt.ylabel(scoring)  # スコア名を縦軸ラベルに
+plt.legend(loc='lower right')  # 凡例
+
+# %% 検証曲線のプロット（横軸パラメータ以外は最適値に固定）
+from sklearn.model_selection import validation_curve
+# 検証曲線描画対象パラメータ
+valid_curve_params = {'reg_alpha': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1],
+                      'reg_lambda': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1],
+                      'num_leaves': [2, 3, 4, 5, 6],
+                      'colsample_bytree': [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                      'subsample': [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+                      'subsample_freq': [0, 1, 2, 3, 4, 5, 6, 7],
+                      'min_child_samples': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+                      }
+param_scales = {'reg_alpha': 'log',
+                'reg_lambda': 'log',
+                'num_leaves': 'linear',
+                'colsample_bytree': 'linear',
+                'subsample': 'linear',
+                'subsample_freq': 'linear',
+                'min_child_samples': 'linear'
+                }
+# 最適パラメータを上記描画対象に追加
+for k, v in valid_curve_params.items():
+    if best_params[k] not in v:
+        v.append(best_params[k])
+        v.sort()
+for i, (k, v) in enumerate(valid_curve_params.items()):
+    # モデルに最適パラメータを適用
+    model.set_params(**best_params)
+    # 検証曲線を描画
+    train_scores, valid_scores = validation_curve(estimator=model,
+                                                  X=X, y=y,
+                                                  param_name=k,
+                                                  param_range=v,
+                                                  fit_params=fit_params,
+                                                  cv=cv, scoring=scoring,
+                                                  n_jobs=-1)
+    # 学習データに対するスコアの平均±標準偏差を算出
+    train_mean = np.mean(train_scores, axis=1)
+    train_std  = np.std(train_scores, axis=1)
+    train_center = train_mean
+    train_high = train_mean + train_std
+    train_low = train_mean - train_std
+    # テストデータに対するスコアの平均±標準偏差を算出
+    valid_mean = np.mean(valid_scores, axis=1)
+    valid_std  = np.std(valid_scores, axis=1)
+    valid_center = valid_mean
+    valid_high = valid_mean + valid_std
+    valid_low = valid_mean - valid_std
+    # training_scoresをプロット
+    plt.plot(v, train_center, color='blue', marker='o', markersize=5, label='training score')
+    plt.fill_between(v, train_high, train_low, alpha=0.15, color='blue')
+    # validation_scoresをプロット
+    plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
+    plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
+    # 最適パラメータを縦線表示
+    plt.axvline(x=best_params[k], color='gray')
+    # スケールをparam_scalesに合わせて変更
+    plt.xscale(param_scales[k])
+    # 軸ラベルおよび凡例の指定
+    plt.xlabel(k)  # パラメータ名を横軸ラベルに
+    plt.ylabel(scoring)  # スコア名を縦軸ラベルに
+    plt.legend(loc='lower right')  # 凡例
+    # グラフを描画
+    plt.show()
+
+# %% チューニング後のモデル可視化
+regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+                             pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
+                             cv=cv, display_cv_indices=0,
+                             fit_params=fit_params, model_params=best_params)
 # %%
