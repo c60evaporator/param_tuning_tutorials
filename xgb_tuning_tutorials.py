@@ -91,7 +91,7 @@ for i, (k, v) in enumerate(cv_params.items()):
     # validation_scoresをプロット
     plt.plot(v, valid_center, color='green', linestyle='--', marker='o', markersize=5, label='validation score')
     plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
-    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
+    # スケールをparam_scalesに合わせて変更
     plt.xscale(param_scales[k])
     # 軸ラベルおよび凡例の指定
     plt.xlabel(k)  # パラメータ名を横軸ラベルに
@@ -287,6 +287,15 @@ valid_curve_params = {'learning_rate': [0.01, 0.02, 0.05, 0.1, 0.2, 0.3],
                       'reg_lambda': [0.001, 0.003, 0.01, 0.03, 0.1],
                       'gamma': [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
                       }
+param_scales = {'learning_rate': 'log',
+                'min_child_weight': 'linear',
+                'max_depth': 'linear',
+                'colsample_bytree': 'linear',
+                'subsample': 'linear',                
+                'reg_alpha': 'log',
+                'reg_lambda': 'log',                
+                'gamma': 'log'
+                }
 # 最適パラメータを上記描画対象に追加
 for k, v in valid_curve_params.items():
     if best_params[k] not in v:
@@ -323,8 +332,8 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
     plt.fill_between(v, valid_high, valid_low, alpha=0.15, color='green')
     # 最適パラメータを縦線表示
     plt.axvline(x=best_params[k], color='gray')
-    # スケールを'log'に（線形なパラメータは'linear'にするので注意）
-    plt.xscale('log')
+    # スケールをparam_scalesに合わせて変更
+    plt.xscale(param_scales[k])
     # 軸ラベルおよび凡例の指定
     plt.xlabel(k)  # パラメータ名を横軸ラベルに
     plt.ylabel(scoring)  # スコア名を縦軸ラベルに
