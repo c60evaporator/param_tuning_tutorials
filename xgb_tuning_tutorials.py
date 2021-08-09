@@ -24,12 +24,12 @@ fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'eval_metric': 'rmse',  # early_stopping_roundsの評価指標
               'eval_set': [(X, y)]  # early_stopping_roundsの評価指標算出用データ
               }
-# クロスバリデーションして決定境界を可視化
+# クロスバリデーションして回帰ヒートマップを可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
-# regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
-#                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
-#                              cv=cv, display_cv_indices=0,
-#                              fit_params=fit_params)
+regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+                             pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
+                             cv=cv, display_cv_indices=0,
+                             fit_params=fit_params)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
