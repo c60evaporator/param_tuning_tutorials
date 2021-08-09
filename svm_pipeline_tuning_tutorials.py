@@ -89,7 +89,7 @@ print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% グリッド内の評価指標を可視化（ヒートマップ）
 import pandas as pd
-# パラメータと評価指標をデータフレームに格納
+# パラメータと評価指標をDataFrameに格納
 param1_array = gridcv.cv_results_['param_svm__gamma'].data.astype(np.float64)  # パラメータgamma
 param2_array = gridcv.cv_results_['param_svm__C'].data.astype(np.float64)  # パラメータC
 mean_scores = gridcv.cv_results_['mean_test_score']  # 評価指標
@@ -164,7 +164,7 @@ best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% BayesianOptimization対数軸の評価指標を可視化（散布図）
-# パラメータと評価指標をndarrayに格納
+# パラメータと評価指標をDataFrameに格納
 df_history = pd.DataFrame(np.power(10 ,bo.space.params), columns=bo.space.keys)  # パラメータ
 mean_scores = bo.space.target  # 評価指標
 # 散布図プロット

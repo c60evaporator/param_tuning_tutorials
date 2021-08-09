@@ -24,7 +24,7 @@ fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
               'eval_metric': 'rmse',  # early_stopping_roundsの評価指標
               'eval_set': [(X, y)]  # early_stopping_roundsの評価指標算出用データ
               }
-# クロスバリデーションして回帰ヒートマップを可視化
+# クロスバリデーションして予測値ヒートマップを可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
 regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
