@@ -237,7 +237,7 @@ best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% BayesianOptimizationの評価指標を可視化（散布図）
-# パラメータと評価指標をndarrayに格納
+# パラメータと評価指標をDataFrameに格納
 df_history = pd.DataFrame(bo.space.params, columns=bo.space.keys)  # パラメータ
 mean_scores = bo.space.target  # 評価指標
 # 散布図プロット
@@ -281,8 +281,8 @@ best_score = bo.max['target']
 print(f'最適パラメータ {best_params}\nスコア {best_score}')
 
 # %% BayesianOptimization対数軸の評価指標を可視化（散布図）
-# パラメータと評価指標をndarrayに格納
-df_history = pd.DataFrame(np.power(10 ,bo.space.params), columns=bo.space.keys)  # パラメータ
+# パラメータと評価指標をDataFrameに格納
+df_history = pd.DataFrame(np.power(10, bo.space.params), columns=bo.space.keys)  # パラメータ
 mean_scores = bo.space.target  # 評価指標
 # 散布図プロット
 sc = plt.scatter(df_history['gamma'].values, df_history['C'].values, c=mean_scores,
