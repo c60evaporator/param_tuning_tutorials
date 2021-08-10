@@ -3,7 +3,7 @@ import seaborn as sns
 iris = sns.load_dataset('iris')
 sns.scatterplot(x='petal_width', y='petal_length', data=iris, hue='species')  # 説明変数と目的変数のデータ点の散布図をプロット
 # %% チューニング前のモデル
-from custom_scatter_plot import classplot
+from seaborn_analyzer import classplot
 from sklearn.svm import SVC
 from sklearn.model_selection import KFold
 # モデル作成
@@ -427,5 +427,5 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
 # %% チューニング後のモデル可視化
 classplot.class_separator_plot(model, ['petal_width', 'petal_length'], 'species', iris,
                                cv=cv, display_cv_indices=[0, 1, 2],
-                               model_params=best_params)
+                               clf_params=best_params)
 # %%

@@ -10,7 +10,7 @@ X = df_osaka[USE_EXPLANATORY].values  # 説明変数をndarray化
 df_osaka[USE_EXPLANATORY + [OBJECTIVE_VARIALBLE]]
 
 # %% チューニング前のモデル
-from custom_scatter_plot import regplot
+from seaborn_analyzer import regplot
 from xgboost import XGBRegressor
 from sklearn.model_selection import KFold
 # 乱数シード
@@ -345,5 +345,5 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
 regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
                              cv=cv, display_cv_indices=0,
-                             fit_params=fit_params, model_params=best_params)
+                             fit_params=fit_params, estimator_params=best_params)
 # %%

@@ -5,7 +5,7 @@ df_athelete = pd.read_csv(f'./sample_data/nba_nfl_2.csv')
 sns.scatterplot(x='height', y='weight', data=df_athelete, hue='league')  # 説明変数と目的変数のデータ点の散布図をプロット
 
 # %% チューニング前のモデル
-from custom_scatter_plot import classplot
+from seaborn_analyzer import classplot
 from sklearn.svm import SVC
 from sklearn.model_selection import StratifiedKFold
 from sklearn.pipeline import Pipeline
@@ -316,5 +316,5 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
 # %% チューニング後のモデル可視化
 classplot.class_separator_plot(model, ['height', 'weight'], 'league', df_athelete,
                                cv=cv, display_cv_indices=[0, 1, 2],
-                               model_params=best_params)
+                               clf_params=best_params)
 # %%
