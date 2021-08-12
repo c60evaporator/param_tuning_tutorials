@@ -9,6 +9,9 @@
 |svm_pipeline_tuning_tutorials.py|パイプライン(標準化+SVM分類)でのパラメータチューニング|[リンク](https://qiita.com/c60evaporator/items/ca7eb70e1508d2ba5359#32-%E3%83%91%E3%82%A4%E3%83%97%E3%83%A9%E3%82%A4%E3%83%B3%E5%87%A6%E7%90%86%E6%A8%99%E6%BA%96%E5%8C%96svm%E3%81%AB%E3%82%88%E3%82%8B%E5%88%86%E9%A1%9E)|
 |xgb_tuning_tutorials.py|XGBoost回帰でのパラメータチューニング|[リンク]()|
 |lgbm_tuning_tutorials.py|LightGBM回帰でのパラメータチューニング|[リンク]()|
+|elasticnet_tuning_tutorials.py|ElasticNet回帰でのパラメータチューニング|[リンク]()|
+|ridge_tuning_tutorials.py|Ridge回帰でのパラメータチューニング|[リンク]()|
+|lasso_tuning_tutorials.py|Lasso回帰でのパラメータチューニング|[リンク]()|
 
 # 実行方法
 VSCodeのJupyterアドオンでの動作推奨です
