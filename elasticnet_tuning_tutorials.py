@@ -51,8 +51,7 @@ from sklearn.model_selection import KFold
 # 乱数シード
 seed = 42
 # モデル作成
-model = ElasticNet()  # チューニング前のモデル
-model = Pipeline([('scaler', StandardScaler()), ('enet', ElasticNet())])
+model = Pipeline([('scaler', StandardScaler()), ('enet', ElasticNet())])  # チューニング前のモデル
 # クロスバリデーションして決定境界を可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
 regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
