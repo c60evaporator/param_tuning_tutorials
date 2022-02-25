@@ -36,7 +36,7 @@ from sklearn.model_selection import cross_val_score
 import numpy as np
 X = df_osaka[USE_EXPLANATORY].values  
 y = df_osaka[OBJECTIVE_VARIALBLE]  # 目的変数をndarray化
-scoring = 'neg_mean_squared_error'  # 評価指標をRMSEに指定
+scoring = 'neg_root_mean_squared_error'  # 評価指標をRMSEに指定
 # クロスバリデーションで評価指標算出
 scores = cross_val_score(model, X, y, cv=cv,
                          scoring=scoring, n_jobs=-1, fit_params=fit_params)
