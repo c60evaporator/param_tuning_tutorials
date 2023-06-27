@@ -9,36 +9,45 @@ X = df_osaka[USE_EXPLANATORY].values  # 説明変数をndarray化
 # データを表示
 df_osaka[USE_EXPLANATORY + [OBJECTIVE_VARIALBLE]]
 
-# %% チューニング前のモデル
+# %% クロスバリデーション用データとearly_stopping用のデータを分割
+from sklearn.model_selection import train_test_split
+seed = 42  # 乱数シード
+X_cv, X_eval, y_cv, y_eval = train_test_split(X, y, test_size=0.25, random_state=42)
+
+# %% チューニング前のモデルの確認
 from seaborn_analyzer import regplot
 from lightgbm import LGBMRegressor
 from sklearn.model_selection import KFold
-# 乱数シード
-seed = 42
+
+# 使用するチューニング対象外のパラメータ
+params = {
+    'objective': 'regression',  # 最小化させるべき損失関数
+    'metric': 'rmse',  # 学習時に使用する評価指標(early_stoppingの評価指標にも同じ値が使用される)
+    'random_state': seed,  # 乱数シード
+    'boosting_type': 'gbdt',  # boosting_type
+    'n_estimators': 10000,  # 最大学習サイクル数。early_stopping使用時は大きな値を入力
+    'verbose': -1,  # これを指定しないと`No further splits with positive gain, best gain: -inf`というWarningが表示される
+    'early_stopping_round': 10  # ここでearly_stoppingを指定
+    }
 # モデル作成
-model = LGBMRegressor(boosting_type='gbdt', objective='regression',
-                      random_state=seed, n_estimators=10000)  # チューニング前のモデル
-# 学習時fitパラメータ指定
-fit_params = {'verbose': 0,  # 学習中のコマンドライン出力
-              'early_stopping_rounds': 10,  # 学習時、評価指標がこの回数連続で改善しなくなった時点でストップ
-              'eval_metric': 'rmse',  # early_stopping_roundsの評価指標
-              'eval_set': [(X, y)]  # early_stopping_roundsの評価指標算出用データ
-              }
+model = LGBMRegressor(**params)
+# 学習時fitパラメータ指定 (early_stopping用のデータeval_setを渡す)
+fit_params = {
+    'eval_set': [(X_eval, y_eval)]
+    }
 # クロスバリデーションして予測値ヒートマップを可視化
 cv = KFold(n_splits=3, shuffle=True, random_state=seed)  # KFoldでクロスバリデーション分割指定
-regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+regplot.regression_heat_plot(model, x=X_cv, y=y_cv, x_colnames=USE_EXPLANATORY,
                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
                              cv=cv, display_cv_indices=0,
-                             fit_params=fit_params)
+                             fit_params=fit_params, validation_fraction=None)
 
 # %% 手順1) チューニング前の評価指標算出
 from sklearn.model_selection import cross_val_score
 import numpy as np
-X = df_osaka[USE_EXPLANATORY].values  
-y = df_osaka[OBJECTIVE_VARIALBLE]  # 目的変数をndarray化
 scoring = 'neg_root_mean_squared_error'  # 評価指標をRMSEに指定
 # クロスバリデーションで評価指標算出
-scores = cross_val_score(model, X, y, cv=cv,
+scores = cross_val_score(model, X_cv, y_cv, cv=cv,
                          scoring=scoring, n_jobs=-1, fit_params=fit_params)
 print(f'scores={scores}')
 print(f'average_score={np.mean(scores)}')
@@ -65,7 +74,7 @@ param_scales = {'reg_alpha': 'log',
 # 検証曲線のプロット（パラメータ毎にプロット）
 for i, (k, v) in enumerate(cv_params.items()):
     train_scores, valid_scores = validation_curve(estimator=model,
-                                                  X=X, y=y,
+                                                  X=X_cv, y=y_cv,
                                                   param_name=k,
                                                   param_range=v,
                                                   fit_params=fit_params,
@@ -98,14 +107,14 @@ for i, (k, v) in enumerate(cv_params.items()):
     # グラフを描画
     plt.show()
 
-# %% 手順2) パラメータ種類と範囲の選択（min_child_samplesのデフォルト値を20→5に、num_leavesを31→2に変更）
+# %% 手順2) パラメータ種類と範囲の選択（min_child_samplesのデフォルト値を20→2に、num_leavesを31→2に変更）
 from sklearn.model_selection import validation_curve
 import matplotlib.pyplot as plt
-model.set_params(min_child_samples=5, num_leaves=2)
+model.set_params(min_child_samples=2, num_leaves=2)
 # 検証曲線のプロット（パラメータ毎にプロット）
 for i, (k, v) in enumerate(cv_params.items()):
     train_scores, valid_scores = validation_curve(estimator=model,
-                                                  X=X, y=y,
+                                                  X=X_cv, y=y_cv,
                                                   param_name=k,
                                                   param_range=v,
                                                   fit_params=fit_params,
@@ -154,7 +163,7 @@ cv_params = {'reg_alpha': [0.0001, 0.003, 0.1],
 gridcv = GridSearchCV(model, cv_params, cv=cv,
                       scoring=scoring, n_jobs=-1)
 # グリッドサーチ実行（学習実行）
-gridcv.fit(X, y, **fit_params)
+gridcv.fit(X_cv, y_cv, **fit_params)
 # 最適パラメータの表示と保持
 best_params = gridcv.best_params_
 best_score = gridcv.best_score_
@@ -178,7 +187,7 @@ randcv = RandomizedSearchCV(model, cv_params, cv=cv,
                             scoring=scoring, random_state=seed,
                             n_iter=1120, n_jobs=-1)
 # ランダムサーチ実行（学習実行）
-randcv.fit(X, y, **fit_params)
+randcv.fit(X_cv, y_cv, **fit_params)
 # 最適パラメータの表示と保持
 best_params = randcv.best_params_
 best_score = randcv.best_score_
@@ -187,6 +196,7 @@ print(f'所要時間{time.time() - start}秒')
 
 # %% 手順3＆4 パラメータ選択＆クロスバリデーション（BayesianOptimization対数軸でベイズ最適化）
 from bayes_opt import BayesianOptimization
+from bayes_opt.util import UtilityFunction
 start = time.time()
 # パラメータ範囲（Tupleで範囲選択）
 bayes_params = {'reg_alpha': (0.0001, 0.1),
@@ -220,14 +230,14 @@ def bayes_evaluate(**kwargs):
     # モデルにパラメータ適用
     model.set_params(**params)
     # cross_val_scoreでクロスバリデーション
-    scores = cross_val_score(model, X, y, cv=cv,
+    scores = cross_val_score(model, X_cv, y_cv, cv=cv,
                              scoring=scoring, fit_params=fit_params, n_jobs=-1)
     val = scores.mean()
     return val
 
 # ベイズ最適化を実行
 bo = BayesianOptimization(bayes_evaluate, bayes_params_log, random_state=seed)
-bo.maximize(init_points=20, n_iter=80, acq='ei')
+bo.maximize(init_points=10, n_iter=80, acquisition_function=UtilityFunction(kind='ei'))
 # 最適パラメータとスコアを取得
 best_params = bo.max['params']
 best_score = bo.max['target']
@@ -256,7 +266,7 @@ def bayes_objective(trial):
     # モデルにパラメータ適用
     model.set_params(**params)
     # cross_val_scoreでクロスバリデーション
-    scores = cross_val_score(model, X, y, cv=cv,
+    scores = cross_val_score(model, X_cv, y_cv, cv=cv,
                              scoring=scoring, fit_params=fit_params, n_jobs=-1)
     val = scores.mean()
     return val
@@ -280,7 +290,7 @@ model.set_params(**best_params)
 
 # 学習曲線の取得
 train_sizes, train_scores, valid_scores = learning_curve(estimator=model,
-                                                         X=X, y=y,
+                                                         X=X_cv, y=y_cv,
                                                          train_sizes=np.linspace(0.1, 1.0, 10),
                                                          fit_params=fit_params,
                                                          cv=cv, scoring=scoring, n_jobs=-1)
@@ -340,7 +350,7 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
     model.set_params(**best_params)
     # 検証曲線を描画
     train_scores, valid_scores = validation_curve(estimator=model,
-                                                  X=X, y=y,
+                                                  X=X_cv, y=y_cv,
                                                   param_name=k,
                                                   param_range=v,
                                                   fit_params=fit_params,
@@ -376,7 +386,7 @@ for i, (k, v) in enumerate(valid_curve_params.items()):
     plt.show()
 
 # %% チューニング後のモデル可視化
-regplot.regression_heat_plot(model, USE_EXPLANATORY, OBJECTIVE_VARIALBLE, df_osaka,
+regplot.regression_heat_plot(model, x=X_cv, y=y_cv, x_colnames=USE_EXPLANATORY,
                              pair_sigmarange = 0.5, rounddigit_x1=3, rounddigit_x2=3,
                              cv=cv, display_cv_indices=0,
                              fit_params=fit_params, estimator_params=best_params)
